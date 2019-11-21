@@ -1,4 +1,5 @@
 import importlib.util
+import os
 import time
 from pathlib import Path
 
@@ -112,13 +113,6 @@ class Model:
     show_default=True,
 )
 @click.option(
-    '-o',
-    '--video-out',
-    help='Annotated video output file name',
-    default='out.mkv',
-    show_default=True,
-)
-@click.option(
     '-c',
     '--confidence',
     help='Confidence threshold for object inference',
@@ -126,16 +120,17 @@ class Model:
     show_default=True,
 )
 @click.version_option()
-def cli(modeldir, video_in, video_out, confidence):
+def cli(modeldir, video_in, confidence):
     model = Model(model_folder=modeldir)
     video = cv.VideoCapture(video_in)
     w = int(video.get(cv.CAP_PROP_FRAME_WIDTH))
     h = int(video.get(cv.CAP_PROP_FRAME_HEIGHT))
 
+
     writer = cv.VideoWriter(
-        filename=str(video_out),
+        filename=f'out-{os.path.basename(video_in)}',
         fourcc=cv.VideoWriter_fourcc(*'MJPG'),
-        fps=15.0,
+        fps=5.0,
         frameSize=(w, h),
         isColor=True,
     )
