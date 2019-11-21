@@ -12,9 +12,10 @@ import numpy as np
 pkg = importlib.util.find_spec('tensorflow')
 if pkg is None:
     from tflite_runtime.interpreter import Interpreter
+    from tflite_runtime.interpreter import load_delegate
 else:
     from tensorflow.lite.python.interpreter import Interpreter
-
+    from tensorflow.lite.python.interpreter import load_delegate
 
 
 class Model:
@@ -24,7 +25,7 @@ class Model:
         graph_file='graph.tflite',
         label_file='labels.txt',
     ):
- 
+
         model_path = Path(model_folder).expanduser() / Path(graph_file)
         label_file = Path(model_folder).expanduser() / Path(label_file)
 
@@ -33,11 +34,14 @@ class Model:
             self.labels = [line.strip() for line in f.readlines()]
 
         # Load the Tensorflow Lite model and get details
-        self.interpreter = Interpreter(model_path=str(model_path))
+        self.interpreter = Interpreter(
+            model_path=str(model_path),
+            experimental_delegates=[load_delegate('libedgetpu.so.1.0')],
+        )
         self.interpreter.allocate_tensors()
 
-        self.input_details = interpreter.get_input_details()
-        self.output_details = interpreter.get_output_details()
+        self.input_details = self.interpreter.get_input_details()
+        self.output_details = self.interpreter.get_output_details()
 
         self.height = self.input_details[0]['shape'][1]
         self.width = self.input_details[0]['shape'][2]
@@ -64,10 +68,12 @@ class Model:
         scores = self.interpreter.get_tensor(self.output_details[2]['index'])[0]
 
         detections = []
-        for i in scores:
-            label  = label=classes[i]
-            name = labels[int(classes[i])]
-            detections.append(dict(score=i, name=name, roi=boxes[i]))
+        for i, score in enumerate(scores):
+            detections.append(dict(
+                score=score,
+                name=classes[i],
+                roi=boxes[i],
+            ))
         return detections
 
 
