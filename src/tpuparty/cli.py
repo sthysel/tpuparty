@@ -33,7 +33,7 @@ class Model:
             self.labels = [line.strip() for line in f.readlines()]
 
         # Load the Tensorflow Lite model and get details
-        self.interpreter = Interpreter(model_path=model_path)
+        self.interpreter = Interpreter(model_path=str(model_path))
         self.interpreter.allocate_tensors()
 
         self.input_details = interpreter.get_input_details()
