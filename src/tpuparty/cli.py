@@ -1,12 +1,11 @@
-import argparse
 import importlib.util
-import os
-import sys
+import time
 from pathlib import Path
 
 import click
-import cv2 as cv
 import numpy as np
+
+import cv2 as cv
 
 # If tensorflow is not installed, import interpreter from tflite_runtime, else import from regular tensorflow
 pkg = importlib.util.find_spec('tensorflow')
@@ -16,6 +15,21 @@ if pkg is None:
 else:
     from tensorflow.lite.python.interpreter import Interpreter
     from tensorflow.lite.python.interpreter import load_delegate
+
+COLORS = {
+    'BHP': (0, 84, 230),
+    'BLUE': (255, 0, 0),
+    'BROWN': (33, 67, 101),
+    'GREEN': (0, 255, 0),
+    'GREY': (188, 188, 188),
+    'ORANGE': (0, 128, 255),
+    'PINK': (255, 153, 255),
+    'RED': (0, 0, 255),
+    'YELLOW': (51, 255, 255),
+    'WHITE': (0, 0, 0),
+    'OLIVE': (69, 146, 148),
+    'CYAN': (255, 255, 0),
+}
 
 
 class Model:
@@ -31,7 +45,7 @@ class Model:
 
         # Load the label map
         with open(label_file, 'r') as f:
-            self.labels = [line.strip() for line in f.readlines()]
+            self.labels = [line.strip().split()[1] for line in f.readlines()]
 
         # Load the Tensorflow Lite model and get details
         self.interpreter = Interpreter(
@@ -69,9 +83,15 @@ class Model:
 
         detections = []
         for i, score in enumerate(scores):
+
+            try:
+                name = self.labels[int(classes[i])]
+            except IndexError as e:
+                print(e)
+                name = '?'
             detections.append(dict(
                 score=score,
-                name=classes[i],
+                name=name,
                 roi=boxes[i],
             ))
         return detections
@@ -86,24 +106,40 @@ class Model:
 )
 @click.option(
     '-f',
-    '--videofile',
-    help='Path to video file',
+    '--video-in',
+    help='Video inout file',
     default='test.mkv',
+    show_default=True,
+)
+@click.option(
+    '-o',
+    '--video-out',
+    help='Annotated video output file name',
+    default='out.mkv',
     show_default=True,
 )
 @click.option(
     '-c',
     '--confidence',
     help='Confidence threshold for object inference',
-    default=50,
+    default=0.1,
     show_default=True,
 )
 @click.version_option()
-def cli(modeldir, videofile, confidence):
+def cli(modeldir, video_in, video_out, confidence):
     model = Model(model_folder=modeldir)
-    video = cv.VideoCapture(videofile)
-    imW = video.get(cv.CAP_PROP_FRAME_WIDTH)
-    imH = video.get(cv.CAP_PROP_FRAME_HEIGHT)
+    video = cv.VideoCapture(video_in)
+    w = int(video.get(cv.CAP_PROP_FRAME_WIDTH))
+    h = int(video.get(cv.CAP_PROP_FRAME_HEIGHT))
+
+    writer = cv.VideoWriter(
+        filename=str(video_out),
+        fourcc=cv.VideoWriter_fourcc(*'MJPG'),
+        fps=15.0,
+        frameSize=(w, h),
+        isColor=True,
+    )
+
 
     while (video.isOpened()):
         ret, frame = video.read()
@@ -117,30 +153,45 @@ def cli(modeldir, videofile, confidence):
             roi = detection.get('roi')
             if score >= confidence:
                 # get bounding box coordinates and draw box
-                # Interpreter can return coordinates that are outside of image dimensions, need to force them to be within image using max() and min()
-                ymin = int(max(1, (roi[0] * imH)))
-                xmin = int(max(1, (roi[1] * imW)))
-                ymax = int(min(imH, (roi[2] * imH)))
-                xmax = int(min(imW, (roi[3] * imW)))
+                # interpreter can return coordinates that are outside of image dimensions, truncate them to be within image shape
+                ymin = int(max(1, (roi[0] * h)))
+                xmin = int(max(1, (roi[1] * w)))
+                ymax = int(min(h, (roi[2] * h)))
+                xmax = int(min(w, (roi[3] * w)))
 
-                cv.rectangle(frame, (xmin, ymin), (xmax, ymax), (10, 255, 0), 4)
-
-                # Draw label
-                label = '%s: %d%%' % (name, int(score * 100))
-                labelSize, baseLine = cv.getTextSize(label, cv.FONT_HERSHEY_SIMPLEX, 0.7, 2)  # Get font size
-                label_ymin = max(ymin, labelSize[1] + 10)  # Make sure not to draw label too close to top of window
                 cv.rectangle(
-                    frame, (xmin, label_ymin - labelSize[1] - 10), (xmin + labelSize[0], label_ymin + baseLine - 10),
-                    (255, 255, 255), cv.FILLED
+                    frame,
+                    (xmin, ymin),
+                    (xmax, ymax),
+                    COLORS.get('BHP'),
+                    4,
                 )
+
+                label = f'{name}, {int(score * 100)}%'
+                label_size, base_line = cv.getTextSize(
+                    label,
+                    cv.FONT_HERSHEY_SIMPLEX,
+                    0.7,
+                    2,
+                )
+                label_ymin = max(ymin, label_size[1] + 10)
                 cv.putText(
-                    frame, label, (xmin, label_ymin - 7), cv.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2
-                )  # Draw label text
+                    frame,
+                    label,
+                    (xmin, label_ymin - 7),
+                    cv.FONT_HERSHEY_SIMPLEX,
+                    0.7,
+                    (0, 0, 0),
+                    2,
+                )
 
         cv.imshow('TPUParty', frame)
+        writer.write(frame)
 
         if cv.waitKey(1) == ord('q'):
             break
+        time.sleep(0.1)
 
     video.release()
+    writer.release()
     cv.destroyAllWindows()
