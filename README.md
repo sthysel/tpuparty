@@ -1,4 +1,4 @@
-# TPUParty
+# TPUParty (Version 0.0.1)
 
 A set of tools and toys to work with the Google TPU
 

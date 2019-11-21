@@ -20,7 +20,7 @@ setup(
         ],
     },
     install_requires=[
-        'python-opencv',
+        'opencv-python',
         'tensorflow',
     ],
     url='',
