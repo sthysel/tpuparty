@@ -30,7 +30,8 @@ models
     └── README.md
 ```
 
-
+The common COCO trained mobilenet model is included in this repo for
+convenience.
 
 # Install
 
