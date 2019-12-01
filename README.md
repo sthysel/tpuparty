@@ -17,6 +17,20 @@ Options:
   --help                  Show this message and exit.
 ```
 
+# Models
+
+`tpuparty` expects models to be presented in directories containing at least a
+graph.tflite file like so:
+
+```zsh
+models
+└── coco/
+    ├── graph.tflite
+    ├── labels.txt
+    └── README.md
+```
+
+
 
 # Install
 
