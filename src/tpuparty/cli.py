@@ -4,9 +4,8 @@ import time
 from pathlib import Path
 
 import click
-import numpy as np
-
 import cv2 as cv
+import numpy as np
 
 # If tensorflow is not installed, import interpreter from tflite_runtime, else import from regular tensorflow
 pkg = importlib.util.find_spec('tensorflow')
@@ -106,37 +105,35 @@ class Model:
     show_default=True,
 )
 @click.option(
-    '-f',
-    '--video-in',
-    help='Video inout file',
-    default='test.mkv',
-    show_default=True,
-)
-@click.option(
     '-c',
     '--confidence',
     help='Confidence threshold for object inference',
     default=0.1,
     show_default=True,
 )
+@click.argument('source')
 @click.version_option()
-def cli(modeldir, video_in, confidence):
+def cli(modeldir, source, confidence):
+    """
+    Runs inference over source
+
+    Example: tpuparty "http://10.0.0.185/axis-cgi/mjpg/video.cgi?&camera=2"
+    """
     model = Model(model_folder=modeldir)
-    video = cv.VideoCapture(video_in)
+    video = cv.VideoCapture(source)
     w = int(video.get(cv.CAP_PROP_FRAME_WIDTH))
     h = int(video.get(cv.CAP_PROP_FRAME_HEIGHT))
 
 
     writer = cv.VideoWriter(
-        filename=f'out-{os.path.basename(video_in)}',
+        filename=f'out-{os.path.basename(source)}',
         fourcc=cv.VideoWriter_fourcc(*'MJPG'),
         fps=5.0,
         frameSize=(w, h),
         isColor=True,
     )
 
-
-    while (video.isOpened()):
+    while video.isOpened():
         ret, frame = video.read()
         frame_rgb = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
 
@@ -147,8 +144,8 @@ def cli(modeldir, video_in, confidence):
             score = detection.get('score', 0)
             roi = detection.get('roi')
             if score >= confidence:
-                # get bounding box coordinates and draw box
-                # interpreter can return coordinates that are outside of image dimensions, truncate them to be within image shape
+                # get bounding box coordinates and draw box interpreter can return coordinates that
+                # are outside of image dimensions, truncate them to be within image shape
                 ymin = int(max(1, (roi[0] * h)))
                 xmin = int(max(1, (roi[1] * w)))
                 ymax = int(min(h, (roi[2] * h)))
@@ -156,28 +153,28 @@ def cli(modeldir, video_in, confidence):
 
                 cv.rectangle(
                     frame,
-                    (xmin, ymin),
-                    (xmax, ymax),
-                    COLORS.get('BHP'),
-                    4,
+                    pt1=(xmin, ymin),
+                    pt2=(xmax, ymax),
+                    color=COLORS.get('BHP'),
+                    thickness=4,
                 )
 
                 label = f'{name}, {int(score * 100)}%'
                 label_size, base_line = cv.getTextSize(
-                    label,
-                    cv.FONT_HERSHEY_SIMPLEX,
-                    0.7,
-                    2,
+                    text=label,
+                    fontFace=cv.FONT_HERSHEY_SIMPLEX,
+                    fontScale=0.7,
+                    thickness=2,
                 )
                 label_ymin = max(ymin, label_size[1] + 10)
                 cv.putText(
                     frame,
-                    label,
-                    (xmin, label_ymin - 7),
-                    cv.FONT_HERSHEY_SIMPLEX,
-                    0.7,
-                    (0, 0, 0),
-                    2,
+                    text=label,
+                    org=(xmin, label_ymin - 7),
+                    fontFace=cv.FONT_HERSHEY_SIMPLEX,
+                    fontScale=0.7,
+                    color=COLORS['WHITE'],
+                    thickness=2,
                 )
 
         cv.imshow('TPUParty', frame)
