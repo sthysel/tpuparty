@@ -155,7 +155,13 @@ def cli(modeldir, source, confidence):
     with ReaderWorker(source=source) as reader:
         for count, timestamp, frame in reader.read():
             logger.debug(f'{count}, {timestamp}')
-            frame_rgb = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
+
+            # some web cams start producing empty frames 
+            try:
+                frame_rgb = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
+            except cv.error as e:
+                logger.error(e)
+                continue
 
             detections = model.infer(frame_rgb)
 

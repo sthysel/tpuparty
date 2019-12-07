@@ -145,6 +145,5 @@ class VideoStreamReader:
             else:
                 time.sleep(1)
                 self._video = cv.VideoCapture(self.source)
-                self._retries_count += 1
 
         raise StopIteration()
