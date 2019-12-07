@@ -9,6 +9,8 @@ import cv2 as cv
 import numpy as np
 from loguru import logger
 
+from .video import ReaderWorker
+
 # If tensorflow is not installed, import interpreter from tflite_runtime, else import from regular tensorflow
 pkg = importlib.util.find_spec('tensorflow')
 if pkg is None:
@@ -69,6 +71,19 @@ class Model:
         self.input_mean = 127.5
         self.input_std = 127.5
 
+    def fix_roi(self, size, roi):
+        h, w = size
+        # interpreter can return coordinates that are outside of image dimensions, truncate them to
+        # be within image shape
+        ymin = int(max(1, (roi[0] * h)))
+        xmin = int(max(1, (roi[1] * w)))
+        ymax = int(min(h, (roi[2] * h)))
+        xmax = int(min(w, (roi[3] * w)))
+        return (
+            (xmin, ymin),
+            (xmax, ymax),
+        )
+
     def infer(self, frame: np.array) -> List[Dict]:
         """
         Infer given frame
@@ -106,7 +121,7 @@ class Model:
             detections.append(dict(
                 score=score,
                 name=name,
-                roi=roi,
+                roi=self.fix_roi(size=frame.shape[:2], roi=roi),
             ))
         return detections
 
@@ -132,71 +147,53 @@ def cli(modeldir, source, confidence):
     Runs inference over source
 
     Example: tpuparty "http://10.0.0.185/axis-cgi/mjpg/video.cgi?&camera=2"
+    Example: tpuparty 0
     """
+
     model = Model(model_folder=modeldir)
-    video = cv.VideoCapture(source)
-    w = int(video.get(cv.CAP_PROP_FRAME_WIDTH))
-    h = int(video.get(cv.CAP_PROP_FRAME_HEIGHT))
 
-    writer = cv.VideoWriter(
-        filename=f'out-{os.path.basename(source)}',
-        fourcc=cv.VideoWriter_fourcc(*'MJPG'),
-        fps=5.0,
-        frameSize=(w, h),
-        isColor=True,
-    )
+    with ReaderWorker(source=source) as reader:
+        for count, timestamp, frame in reader.read():
+            logger.debug(f'{count}, {timestamp}')
+            frame_rgb = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
 
-    while video.isOpened():
-        ret, frame = video.read()
-        frame_rgb = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
+            detections = model.infer(frame_rgb)
 
-        detections = model.infer(frame_rgb)
+            for detection in detections:
+                name = detection.get('name', '')
+                score = detection.get('score', 0)
+                pmin, pmax = detection.get('roi')
+                if score >= confidence:
+                    cv.rectangle(
+                        frame,
+                        pt1=pmin,
+                        pt2=pmax,
+                        color=COLORS.get('BHP'),
+                        thickness=4,
+                    )
 
-        for detection in detections:
-            name = detection.get('name', '')
-            score = detection.get('score', 0)
-            roi = detection.get('roi')
-            if score >= confidence:
-                # get bounding box coordinates and draw box interpreter can return coordinates that
-                # are outside of image dimensions, truncate them to be within image shape
-                ymin = int(max(1, (roi[0] * h)))
-                xmin = int(max(1, (roi[1] * w)))
-                ymax = int(min(h, (roi[2] * h)))
-                xmax = int(min(w, (roi[3] * w)))
+                    label = f'{name}, {int(score * 100)}%'
+                    label_size, base_line = cv.getTextSize(
+                        text=label,
+                        fontFace=cv.FONT_HERSHEY_SIMPLEX,
+                        fontScale=0.7,
+                        thickness=2,
+                    )
 
-                cv.rectangle(
-                    frame,
-                    pt1=(xmin, ymin),
-                    pt2=(xmax, ymax),
-                    color=COLORS.get('BHP'),
-                    thickness=4,
-                )
+                    xmin, ymin = pmin
+                    label_ymin = max(ymin, label_size[1] + 10)
+                    cv.putText(
+                        frame,
+                        text=label,
+                        org=(xmin, label_ymin - 7),
+                        fontFace=cv.FONT_HERSHEY_SIMPLEX,
+                        fontScale=0.7,
+                        color=COLORS['WHITE'],
+                        thickness=2,
+                    )
+                cv.imshow('TPUParty', frame)
 
-                label = f'{name}, {int(score * 100)}%'
-                label_size, base_line = cv.getTextSize(
-                    text=label,
-                    fontFace=cv.FONT_HERSHEY_SIMPLEX,
-                    fontScale=0.7,
-                    thickness=2,
-                )
-                label_ymin = max(ymin, label_size[1] + 10)
-                cv.putText(
-                    frame,
-                    text=label,
-                    org=(xmin, label_ymin - 7),
-                    fontFace=cv.FONT_HERSHEY_SIMPLEX,
-                    fontScale=0.7,
-                    color=COLORS['WHITE'],
-                    thickness=2,
-                )
+            if cv.waitKey(1) == ord('q'):
+                break
 
-        cv.imshow('TPUParty', frame)
-        writer.write(frame)
-
-        if cv.waitKey(1) == ord('q'):
-            break
-        time.sleep(0.1)
-
-    video.release()
-    writer.release()
     cv.destroyAllWindows()
