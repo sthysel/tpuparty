@@ -69,7 +69,7 @@ class Model:
         self.input_mean = 127.5
         self.input_std = 127.5
 
-    def infer(self, frame:np.array) -> List[Dict]:
+    def infer(self, frame: np.array) -> List[Dict]:
         """
         Infer given frame
 
@@ -98,19 +98,15 @@ class Model:
         # confidence of detected objects
         scores = self.interpreter.get_tensor(self.output_details[2]['index'])[0]
 
-
+        data = zip(boxes, classes, scores)
 
         detections = []
-        for i, score in enumerate(scores):
-            try:
-                name = self.labels[int(classes[i])]
-            except IndexError as e:
-                logger.error(e)
-                name = f'index {i}'
+        for roi, klass, score in data:
+            name = self.labels[int(klass)]
             detections.append(dict(
                 score=score,
                 name=name,
-                roi=boxes[i],
+                roi=roi,
             ))
         return detections
 
@@ -141,7 +137,6 @@ def cli(modeldir, source, confidence):
     video = cv.VideoCapture(source)
     w = int(video.get(cv.CAP_PROP_FRAME_WIDTH))
     h = int(video.get(cv.CAP_PROP_FRAME_HEIGHT))
-
 
     writer = cv.VideoWriter(
         filename=f'out-{os.path.basename(source)}',
