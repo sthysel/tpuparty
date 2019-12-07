@@ -9,6 +9,7 @@ import cv2 as cv
 import numpy as np
 from loguru import logger
 
+from . import colors
 from .video import ReaderWorker
 
 # If tensorflow is not installed, import interpreter from tflite_runtime, else import from regular tensorflow
@@ -20,20 +21,6 @@ else:
     from tensorflow.lite.python.interpreter import Interpreter
     from tensorflow.lite.python.interpreter import load_delegate
 
-COLORS = {
-    'BHP': (0, 84, 230),
-    'BLUE': (255, 0, 0),
-    'BROWN': (33, 67, 101),
-    'GREEN': (0, 255, 0),
-    'GREY': (188, 188, 188),
-    'ORANGE': (0, 128, 255),
-    'PINK': (255, 153, 255),
-    'RED': (0, 0, 255),
-    'YELLOW': (51, 255, 255),
-    'WHITE': (0, 0, 0),
-    'OLIVE': (69, 146, 148),
-    'CYAN': (255, 255, 0),
-}
 
 
 class Model:
@@ -174,7 +161,7 @@ def cli(modeldir, source, confidence):
                         frame,
                         pt1=pmin,
                         pt2=pmax,
-                        color=COLORS.get('BHP'),
+                        color=colors.BHP,
                         thickness=4,
                     )
 
@@ -194,7 +181,7 @@ def cli(modeldir, source, confidence):
                         org=(xmin, label_ymin - 7),
                         fontFace=cv.FONT_HERSHEY_SIMPLEX,
                         fontScale=0.7,
-                        color=COLORS['WHITE'],
+                        color=colors.CYAN,
                         thickness=2,
                     )
                 cv.imshow('TPUParty', frame)
