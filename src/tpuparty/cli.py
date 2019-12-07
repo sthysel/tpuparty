@@ -2,10 +2,12 @@ import importlib.util
 import os
 import time
 from pathlib import Path
+from typing import Dict, List
 
 import click
 import cv2 as cv
 import numpy as np
+from loguru import logger
 
 # If tensorflow is not installed, import interpreter from tflite_runtime, else import from regular tensorflow
 pkg = importlib.util.find_spec('tensorflow')
@@ -45,25 +47,39 @@ class Model:
 
         # Load the label map
         with open(label_file, 'r') as f:
-            self.labels = [line.strip().split()[1] for line in f.readlines()]
+            self.labels = [line.strip() for line in f.readlines()]
 
-        # Load the Tensorflow Lite model and get details
+        logger.info('loading tensorflow model')
         self.interpreter = Interpreter(
             model_path=str(model_path),
             experimental_delegates=[load_delegate('libedgetpu.so.1.0')],
         )
         self.interpreter.allocate_tensors()
+        logger.info('done loading tensorflow model')
 
         self.input_details = self.interpreter.get_input_details()
         self.output_details = self.interpreter.get_output_details()
 
+        # the model's expected shape
         self.height = self.input_details[0]['shape'][1]
         self.width = self.input_details[0]['shape'][2]
+        logger.info(f'model shape: ({self.height}x{self.width})')
+
         self.is_quantized = self.input_details[0]['dtype'] == np.float32
         self.input_mean = 127.5
         self.input_std = 127.5
 
-    def infer(self, frame):
+    def infer(self, frame:np.array) -> List[Dict]:
+        """
+        Infer given frame
+
+        - Arguments
+          - frame: np.array, the frame to infer on
+
+        - Returns
+          - list of detections
+        """
+        # resize input frame to expected model size
         frame_resized = cv.resize(frame, (self.width, self.height))
         input_data = np.expand_dims(frame_resized, axis=0)
 
@@ -71,6 +87,7 @@ class Model:
         if self.is_quantized:
             input_data = (np.float32(input_data) - self.input_mean) / self.input_std
 
+        # do the inference
         self.interpreter.set_tensor(self.input_details[0]['index'], input_data)
         self.interpreter.invoke()
 
@@ -81,14 +98,15 @@ class Model:
         # confidence of detected objects
         scores = self.interpreter.get_tensor(self.output_details[2]['index'])[0]
 
+
+
         detections = []
         for i, score in enumerate(scores):
-
             try:
                 name = self.labels[int(classes[i])]
             except IndexError as e:
-                print(e)
-                name = '?'
+                logger.error(e)
+                name = f'index {i}'
             detections.append(dict(
                 score=score,
                 name=name,

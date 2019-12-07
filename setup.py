@@ -20,6 +20,8 @@ setup(
         ],
     },
     install_requires=[
+        'click',
+        'loguru',
         'opencv-python',
         'tensorflow',
     ],
