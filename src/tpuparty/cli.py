@@ -27,9 +27,15 @@ from .video import ReaderWorker
     default=0.1,
     show_default=True,
 )
+@click.option(
+    '--fps',
+    help='FPS playback for recordings',
+    default=None,
+    show_default=True,
+)
 @click.argument('source')
 @click.version_option()
-def cli(modeldir, source, confidence):
+def cli(modeldir, source, confidence, fps):
     """
     Runs inference over source
 
@@ -39,7 +45,7 @@ def cli(modeldir, source, confidence):
 
     model = Model(model_folder=modeldir)
 
-    with ReaderWorker(source=source) as reader:
+    with ReaderWorker(source=source, fps=fps) as reader:
         for count, timestamp, frame in reader.read():
             logger.debug(f'{count}, {timestamp}')
 

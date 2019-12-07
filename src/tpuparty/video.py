@@ -72,8 +72,6 @@ class ReaderWorker(Thread):
                 self.consumed_count += 1
                 logger.debug(f'yielding frame {self.frame_count}')
                 yield self.frame_count, self.frame_timestamp, self.frame
-            else:
-                yield self.frame_count, self.frame_timestamp, self.frame
 
     def stop(self):
         self.stopped = True

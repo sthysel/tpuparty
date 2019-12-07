@@ -6,7 +6,6 @@ import cv2 as cv
 import numpy as np
 from loguru import logger
 
-
 # If tensorflow is not installed, import interpreter from tflite_runtime, else import from regular tensorflow
 pkg = importlib.util.find_spec('tensorflow')
 if pkg is None:
@@ -81,7 +80,7 @@ class Model:
 
         # normalize pixel values if floating model, model is not quantized
         if self.is_quantized:
-            input_data = (np.float32(input_data) - self.input_mean) / self.input_std
+           input_data = (np.float32(input_data) - self.input_mean) / self.input_std
 
         # do the inference
         self.interpreter.set_tensor(self.input_details[0]['index'], input_data)
