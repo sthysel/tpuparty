@@ -5,14 +5,20 @@ A set of tools and toys to work with the Google TPU
 # Usage
 
 ``` zsh
-Usage: tpuparty [OPTIONS]
+Usage: tpuparty [OPTIONS] SOURCE
+
+  Runs inference over source
+
+  Examples:
+  $ tpuparty "http://10.0.0.185/axis-cgi/mjpg/video.cgi?&camera=2"
+  $ tpuparty 0
 
 Options:
   --modeldir TEXT         Directory containing the model weight and label
                           files  [default: ~/models/coco/]
-  -f, --video-in TEXT     Video inout file  [default: test.mkv]
   -c, --confidence FLOAT  Confidence threshold for object inference  [default:
                           0.1]
+  --fps TEXT              FPS playback for recordings
   --version               Show the version and exit.
   --help                  Show this message and exit.
 ```
@@ -41,3 +47,4 @@ At this time tensorflow is not yet available for Python 3.8, so use the next bes
 $ mkvirtualenv -p python3.7 tpuparty 
 $ pip install .
 ```
+

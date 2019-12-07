@@ -39,8 +39,10 @@ def cli(modeldir, source, confidence, fps):
     """
     Runs inference over source
 
-    Example: tpuparty "http://10.0.0.185/axis-cgi/mjpg/video.cgi?&camera=2"
-    Example: tpuparty 0
+    \b
+    Examples:
+    $ tpuparty "http://10.0.0.185/axis-cgi/mjpg/video.cgi?&camera=2"
+    $ tpuparty 0
     """
 
     model = Model(model_folder=modeldir)
