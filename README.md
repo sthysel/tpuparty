@@ -16,8 +16,7 @@ Usage: tpuparty [OPTIONS] SOURCE
 Options:
   --modeldir TEXT         Directory containing the model weight and label
                           files  [default: ~/models/coco/]
-  -c, --confidence FLOAT  Confidence threshold for object inference  [default:
-                          0.1]
+  -c, --confidence FLOAT  Confidence threshold for object inference  [default: 0.1]
   --fps TEXT              FPS playback for recordings
   --version               Show the version and exit.
   --help                  Show this message and exit.
