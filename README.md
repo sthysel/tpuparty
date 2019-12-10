@@ -38,6 +38,9 @@ models
 The common COCO trained mobilenet model is included in this repo for
 convenience.
 
+Notice the models are sourced from various places and may have their own licences attached.
+The licence for this project pertains to the code only. 
+
 # Install
 
 At this time tensorflow is not yet available for Python 3.8, so use the next best thing
