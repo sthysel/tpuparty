@@ -2,10 +2,15 @@
 
 A set of tools and toys to work with the Google TPU
 
+| Tool               | Good for                                |
+| tpuparty-detection | Draw ROI of detections on a video frame |
+
 # Usage
 
+## tpuparty-detection
+
 ``` zsh
-Usage: tpuparty [OPTIONS] SOURCE
+Usage: tpuparty-detection [OPTIONS] SOURCE
 
   Runs inference over source
 
@@ -15,7 +20,7 @@ Usage: tpuparty [OPTIONS] SOURCE
 
 Options:
   --modeldir TEXT         Directory containing the model weight and label
-                          files  [default: ~/models/coco/]
+                          files  [default: ~/models/detection/coco/]
   -c, --confidence FLOAT  Confidence threshold for object inference  [default: 0.1]
   --fps TEXT              FPS playback for recordings
   --version               Show the version and exit.
@@ -28,14 +33,24 @@ Options:
 graph.tflite file like so:
 
 ```zsh
-models
-└── coco/
-    ├── graph.tflite
-    ├── labels.txt
-    └── README.md
+├── classification/
+│   └── efficientnet_l/
+│       ├── efficientnet-edgetpu-L_quant_edgetpu.tflite
+│       ├── graph.tflite -> efficientnet-edgetpu-L_quant_edgetpu.tflite
+│       └── labels.txt
+└── detection/
+    ├── coco/
+    │   ├── graph.tflite
+    │   ├── labels.txt
+    │   └── README.md
+    └── google_coco/
+        ├── graph.tflite
+        ├── labels.txt
+        └── README.md
+
 ```
 
-The common COCO trained mobilenet model is included in this repo for
+The common COCO trained mobilenet model and others are included in this repo for
 convenience.
 
 Notice the models are sourced from various places and may have their own licences attached.

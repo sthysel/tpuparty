@@ -16,7 +16,7 @@ setup(
     long_description_content_type='text/markdown',
     entry_points={
         'console_scripts': [
-            'tpuparty=tpuparty.cli:cli',
+            'tpuparty-detection=tpuparty.detection:cli',
         ],
     },
     install_requires=[

@@ -1,1 +1,0 @@
- mobilenet_ssd_v2_coco_quant
