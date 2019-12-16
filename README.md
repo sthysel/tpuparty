@@ -3,6 +3,7 @@
 A set of tools and toys to work with the Google TPU
 
 | Tool               | Good for                                |
+|--------------------|-----------------------------------------|
 | tpuparty-detection | Draw ROI of detections on a video frame |
 
 # Usage
